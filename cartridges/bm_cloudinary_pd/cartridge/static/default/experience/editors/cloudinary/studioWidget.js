@@ -17,7 +17,7 @@
 
         // Size the container to fill the modal viewport
         parentIFrame.getPageInfo(function (info) {
-            var rem    = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+            var rem    = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
             var chrome = 55 + 55 + (4 * rem);
             var h      = Math.max(Math.round(info.clientHeight - chrome), 400);
 
@@ -50,32 +50,26 @@
                 try { widget.destroy(); } catch (e) {}
             });
 
-            // ── insert ────────────────────────────────────────────────────
             widget.on('insert', function (payload) {
-                console.log('[CLD Studio] raw insert payload:', payload);
-
                 try {
                     var imageUrl = '';
                     var publicId = '';
                     var trans    = '[]';
 
                     if (typeof payload === 'string') {
-                        // SDK delivers the final delivery URL as a plain string
                         imageUrl = payload;
                         var parsed = parseCloudinaryUrl(payload);
                         publicId   = parsed.publicId;
                         trans      = parsed.transformation;
                     } else {
-                        // Future-proof: handle object payload
-                        var asset = payload;
-                        if (payload && Array.isArray(payload.assets) && payload.assets.length) {
-                            asset = payload.assets[0];
-                        } else if (Array.isArray(payload) && payload.length) {
-                            asset = payload[0];
-                        }
-                        imageUrl = asset.url || asset.imageUrl || asset.secure_url || '';
-                        publicId = asset.public_id || asset.publicId || '';
-                        trans    = asset.transformation || asset.eager_transformation || '[]';
+                        var asset = Array.isArray(payload?.assets) && payload.assets.length
+                            ? payload.assets[0]
+                            : Array.isArray(payload) && payload.length
+                                ? payload[0]
+                                : payload;
+                        imageUrl = asset?.url || asset?.imageUrl || asset?.secure_url || '';
+                        publicId = asset?.public_id || asset?.publicId || '';
+                        trans    = asset?.transformation || asset?.eager_transformation || '[]';
                         if (typeof trans !== 'string') {
                             try { trans = JSON.stringify(trans); } catch (e) { trans = '[]'; }
                         }
@@ -84,9 +78,9 @@
                     var result = {
                         formValues: {
                             studioResult: {
-                                imageUrl:                imageUrl,
-                                transformation:          trans,
-                                public_id:               publicId,
+                                imageUrl:                 imageUrl,
+                                transformation:           trans,
+                                public_id:                publicId,
                                 isTransformationOverride: true
                             }
                         }
@@ -94,14 +88,12 @@
 
                     emitFn({ type: 'sfcc:value', payload: result });
 
-                    // Close the breakout modal by programmatically clicking
-                    // SFCC's "Apply" button in the parent frame
+                    // Close the breakout modal by clicking SFCC's Apply button in the parent frame
                     setTimeout(function () {
                         try {
-                            var buttons = window.parent.document.querySelectorAll('button');
-                            for (var b = 0; b < buttons.length; b++) {
-                                if (buttons[b].textContent.trim() === 'Apply') {
-                                    buttons[b].click();
+                            for (var btn of window.parent.document.querySelectorAll('button')) {
+                                if (btn.textContent.trim() === 'Apply') {
+                                    btn.click();
                                     break;
                                 }
                             }
@@ -111,10 +103,6 @@
                 } catch (err) {
                     console.error('[CLD Studio] insert handler error:', err);
                 }
-            });
-
-            widget.on('close', function () {
-                console.log('[CLD Studio] widget closed by user');
             });
         }
     });

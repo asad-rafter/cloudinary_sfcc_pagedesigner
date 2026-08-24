@@ -63,12 +63,20 @@
     function toFormFactor(viewport) {
         if (!viewport) return 'desktop';
         if (viewport.breakpoint) {
-            var bp = viewport.breakpoint.toLowerCase();
-            if (bp === 'mobile' || bp === 'tablet' || bp === 'desktop') return bp;
+            var vbp = viewport.breakpoint.toLowerCase();
+            if (vbp === 'mobile' || vbp === 'tablet' || vbp === 'desktop') return vbp;
+        }
+        var breakpoints = { mobile: 767, tablet: 1023 };
+        if (state.config && state.config.breakpoints) {
+            try {
+                var parsed = JSON.parse(state.config.breakpoints);
+                if (typeof parsed.mobile === 'number') breakpoints.mobile = parsed.mobile;
+                if (typeof parsed.tablet === 'number') breakpoints.tablet = parsed.tablet;
+            } catch (e) {}
         }
         var w = viewport.width || 1024;
-        if (w <= 767) return 'mobile';
-        if (w <= 1023) return 'tablet';
+        if (w <= breakpoints.mobile) return 'mobile';
+        if (w <= breakpoints.tablet) return 'tablet';
         return 'desktop';
     }
 

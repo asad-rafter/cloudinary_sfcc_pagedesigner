@@ -251,17 +251,6 @@
     background: #fff;
 }
 
-.cld-adv-applied {
-    display: inline-block;
-    margin-bottom: 8px;
-    padding: 2px 8px;
-    border-radius: 3px;
-    background: #e3f3e3;
-    color: #2e7d32;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-}
 
 .cld-adv-override {
     display: flex;

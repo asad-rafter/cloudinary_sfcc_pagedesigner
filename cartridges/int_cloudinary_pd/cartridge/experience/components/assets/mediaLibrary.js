@@ -189,8 +189,22 @@ module.exports.preRender = function (context, editorId) {
             transformationArr = [globalObj];
         }
 
-        var ext      = asset.format ? '.' + asset.format : '';
-        var imageUrl = baseUrl + '/image/upload/' + (transPart ? transPart + '/' : '') + publicId + ext;
+        // Build per-form-factor image URLs with inheritance (mobile → tablet → desktop)
+        var formFactorOrder = ['mobile', 'tablet', 'desktop'];
+        var formFactorImageUrls = {};
+        var lastResolvedUrl = null;
+        for (var i = 0; i < formFactorOrder.length; i++) {
+            var formFactor = formFactorOrder[i];
+            var formFactorEntry = val.formValues[formFactor];
+            if (formFactorEntry && formFactorEntry.asset) {
+                var fileExtension = formFactorEntry.asset.format ? '.' + formFactorEntry.asset.format : '';
+                lastResolvedUrl = baseUrl + '/image/upload/' + (transPart ? transPart + '/' : '') + formFactorEntry.asset.public_id + fileExtension + constants.CLD_TRACKING_PARAM;
+            }
+            if (lastResolvedUrl) formFactorImageUrls[formFactor] = lastResolvedUrl;
+        }
+
+        var ext          = asset.format ? '.' + asset.format : '';
+        var primaryImageUrl = baseUrl + '/image/upload/' + (transPart ? transPart + '/' : '') + publicId + ext;
 
         viewmodel.id        = idSafeString(publicId.replace(/\//g, '-') + randomString(12));
         viewmodel.publicId  = publicId;
@@ -200,11 +214,35 @@ module.exports.preRender = function (context, editorId) {
         }
         viewmodel.CloudinaryPageDesignerCNAME = constants.SITE_PREFS.CloudinaryPageDesignerCNAME;
 
-        viewmodel.src            = imageUrl + constants.CLD_TRACKING_PARAM;
-        viewmodel.placeholder    = imageUrl + constants.CLD_TRACKING_PARAM;
+        viewmodel.src            = primaryImageUrl + constants.CLD_TRACKING_PARAM;
+        viewmodel.placeholder    = primaryImageUrl + constants.CLD_TRACKING_PARAM;
         viewmodel.transformation = JSON.stringify(transformationArr);
         viewmodel.isTransformationOverride = isOverride;
         viewmodel.srcset = generateBreakPoints(viewmodel);
+
+        // Include per-form-factor URLs when more than one distinct image is configured
+        var distinctImageCount = 0;
+        var seenImageUrls = {};
+        for (var formFactorKey in formFactorImageUrls) {
+            var imageUrl = formFactorImageUrls[formFactorKey];
+            if (!seenImageUrls[imageUrl]) { seenImageUrls[imageUrl] = 1; distinctImageCount++; }
+        }
+        if (distinctImageCount > 1) {
+            viewmodel.formFactorImages = formFactorImageUrls;
+            var breakpointsRaw = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerFormFactorBreakpoints');
+            var breakpoints = { mobile: 767, tablet: 1023 };
+            if (breakpointsRaw) {
+                try {
+                    var parsedBreakpoints = JSON.parse(breakpointsRaw);
+                    if (typeof parsedBreakpoints.mobile === 'number') breakpoints.mobile = parsedBreakpoints.mobile;
+                    if (typeof parsedBreakpoints.tablet === 'number') breakpoints.tablet = parsedBreakpoints.tablet;
+                } catch (e) {
+                    Logger.error('CloudinaryPageDesignerFormFactorBreakpoints is not valid JSON: {0}', e.message);
+                }
+            }
+            viewmodel.mobileBreakpoint = breakpoints.mobile;
+            viewmodel.tabletBreakpoint = breakpoints.tablet;
+        }
 
         return viewmodel;
     }

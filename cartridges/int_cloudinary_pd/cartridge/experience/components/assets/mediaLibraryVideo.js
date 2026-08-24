@@ -439,6 +439,19 @@ module.exports.preRender = function (context, editorId) {
         viewmodel.widgetOptions = defaultOpt.widgetOptions;
         viewmodel.formFactorOptions = JSON.stringify(ffOptions);
 
+        var breakpointsRaw = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerFormFactorBreakpoints');
+        var breakpoints = { mobile: 767, tablet: 1023 };
+        if (breakpointsRaw) {
+            try {
+                var parsedBp = JSON.parse(breakpointsRaw);
+                if (typeof parsedBp.mobile === 'number') breakpoints.mobile = parsedBp.mobile;
+                if (typeof parsedBp.tablet === 'number') breakpoints.tablet = parsedBp.tablet;
+            } catch (e) {
+                require('dw/system/Logger').getLogger('int_cloudinary_pd', 'int_cloudinary_pd').error('CloudinaryPageDesignerFormFactorBreakpoints is not valid JSON: {0}', e.message);
+            }
+        }
+        viewmodel.formFactorBreakpoints = JSON.stringify(breakpoints);
+
         return viewmodel;
     }
 
