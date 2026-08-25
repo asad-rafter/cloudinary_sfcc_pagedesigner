@@ -1,4 +1,4 @@
-/* ── Root ──────────────────────────────────────────────────────────────── */
+/* Root */
 #cld-widget-root {
     font-family: "Salesforce Sans", Arial, sans-serif;
     font-size: 0.8125rem;
@@ -7,7 +7,7 @@
     box-sizing: border-box;
 }
 
-/* ── Form Factor Tabs ──────────────────────────────────────────────────── */
+/* Form Factor Tabs */
 .cld-ff-tabs {
     display: flex;
     padding: 0 8px;
@@ -52,7 +52,7 @@
     flex-shrink: 0;
 }
 
-/* ── Media Picker Button ───────────────────────────────────────────────── */
+/* Media Picker Button */
 .cld-picker {
     position: relative;
     display: flex;
@@ -134,7 +134,7 @@
     color: #fff;
 }
 
-/* ── File row ──────────────────────────────────────────────────────────── */
+/* File row */
 .cld-file-row {
     display: flex;
     align-items: center;
@@ -184,7 +184,7 @@
     color: #c23934;
 }
 
-/* ── Poster image & Player options sections ────────────────────────────── */
+/* Poster image & Player options sections */
 .cld-section {
     padding: 10px 8px 4px;
     border-bottom: 1px solid #dddbda;
@@ -216,7 +216,7 @@
     flex-shrink: 0;
 }
 
-/* ── Advanced section ──────────────────────────────────────────────────── */
+/* Advanced section */
 .cld-section--advanced {
     border-bottom: none;
 }

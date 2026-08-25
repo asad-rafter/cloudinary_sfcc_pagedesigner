@@ -12,12 +12,12 @@ function normalizeValueForIframe(value) {
     if (!value || !value.formValues) return value;
     var fv = value.formValues;
 
-    // Already in the old format – nothing to do
-    if (fv.video && fv.video.asset) return value;
+    // Already in the old format - nothing to do
+    if (fv.video?.asset) return value;
 
     // Resolve current asset from the new per-form-factor format
     var entry = fv.desktop || fv.tablet || fv.mobile;
-    if (!entry || !entry.asset) return value;
+    if (!entry?.asset) return value;
 
     var asset = entry.asset;
 
@@ -41,7 +41,7 @@ function normalizeValueForIframe(value) {
         // Ensure formValues.video.transStr is populated for the iframe preview.
         // New saves already have it set (injected in the 'done' handler).
         // For old saves (made before that fix), playerConf was stripped by SFCC
-        // storage so it won't be present here — fall back to the widget-level
+        // storage so it won't be present here - fall back to the widget-level
         // transformationOverride which is preserved in the parent value.
         if (!restored.formValues.video.transStr) {
             if (restored.playerConf) {
@@ -60,7 +60,7 @@ function normalizeValueForIframe(value) {
         return restored;
     }
 
-    // First-time open – no previous Advanced config, start from scratch.
+    // First-time open - no previous Advanced config, start from scratch.
     return {
         formValues: {
             video: {
@@ -98,11 +98,11 @@ function normalizeValueForIframe(value) {
             if (event.origin === config.iFrameEnv) {
                 // Pass iframeValue (old-format shape) so the 'ready' handler
                 // posts back data the iframe can actually parse for its UI.
-                handleIframeMessage(event.data, ifrm, iframeValue, config);
+                handleIframeMessage(event.data, ifrm, iframeValue);
             }
         });
         parentIFrame.getPageInfo((i) => {
-            const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+            const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
             const headerHeight = 61;
             const footerHeight = 61;
             // We remove - 6rem padding, header & footer

@@ -13,7 +13,7 @@
     var FORM_FACTORS = ['mobile', 'tablet', 'desktop']; // inheritance fallback order
     var TAB_ORDER    = ['desktop', 'mobile', 'tablet'];  // display order in the tab bar
 
-    // ── Inheritance ──────────────────────────────────────────────────────
+    // Inheritance
 
     function resolveAsset(formFactor) {
         if (state.formValues[formFactor]) return state.formValues[formFactor];
@@ -27,10 +27,10 @@
         return !state.formValues[formFactor] && !!resolveAsset(formFactor);
     }
 
-    // ── URL builders ─────────────────────────────────────────────────────
+    // URL builders
 
     function buildDeliveryUrl(asset) {
-        if (!asset || !asset.public_id) return '';
+        if (!asset?.public_id) return '';
         var cname = state.config.cname;
         var base = cname
             ? 'https://' + cname.replace(/^https?:\/\//, '')
@@ -40,7 +40,7 @@
     }
 
     function buildThumbnailUrl(asset) {
-        if (!asset || !asset.public_id) return '';
+        if (!asset?.public_id) return '';
         var cloudName = asset.cloudName || state.config.cloudName;
         var publicId = asset.public_id.replace(/\.[^/.]+$/, '');
         var resourceType = asset.resource_type === 'video' ? 'video' : 'image';
@@ -48,7 +48,7 @@
             '/' + resourceType + '/upload/w_400,h_160,c_fill,q_auto,f_jpg/' + publicId + '.jpg';
     }
 
-    // ── SFCC emit ────────────────────────────────────────────────────────
+    // SFCC emit
 
     function emitToSFCC() {
         var hasAny = FORM_FACTORS.some(function (ff) { return !!state.formValues[ff]; });
@@ -65,7 +65,7 @@
         });
     }
 
-    // ── Viewport → form factor ───────────────────────────────────────────
+    // Viewport -> form factor
 
     function toFormFactor(viewport) {
         if (!viewport) return 'desktop';
@@ -74,7 +74,7 @@
             if (vbp === 'mobile' || vbp === 'tablet' || vbp === 'desktop') return vbp;
         }
         var breakpoints = { mobile: 767, tablet: 1023 };
-        if (state.config && state.config.breakpoints) {
+        if (state.config?.breakpoints) {
             try {
                 var parsed = JSON.parse(state.config.breakpoints);
                 if (typeof parsed.mobile === 'number') breakpoints.mobile = parsed.mobile;
@@ -87,7 +87,7 @@
         return 'desktop';
     }
 
-    // ── Initial value ────────────────────────────────────────────────────
+    // Initial value
 
     function parseInitialValue(value) {
         if (!value) return;
@@ -117,14 +117,14 @@
             return;
         }
 
-        // Legacy format: migrate video.asset → mobile slot
-        if (fv.video && fv.video.asset) {
+        // Legacy format: migrate video.asset -> mobile slot
+        if (fv.video?.asset) {
             var asset = Object.assign({}, fv.video.asset, { cloudName: state.config.cloudName });
             state.formValues.mobile = { asset: asset, url: buildDeliveryUrl(asset) };
         }
     }
 
-    // ── Cloudinary MLW – SFCC breakout ───────────────────────────────────
+    // Cloudinary MLW - SFCC breakout
 
     function openMediaPicker() {
         emit(
@@ -133,7 +133,7 @@
                 payload: { id: 'mediaPicker', title: 'Cloudinary Video' }
             },
             function (data) {
-                if (data && data.value) {
+                if (data?.value) {
                     var asset = Object.assign({}, data.value, { cloudName: state.config.cloudName });
                     var url = buildDeliveryUrl(asset);
                     state.formValues[state.activeFormFactor] = { asset: asset, url: url };
@@ -144,7 +144,7 @@
         );
     }
 
-    // ── Render ───────────────────────────────────────────────────────────
+    // Render
 
     function render() {
         var root = document.getElementById('cld-widget-root');
@@ -224,7 +224,7 @@
         var asset = entry ? entry.asset : null;
         var hasAsset = !!asset;
         var inherited = isInherited(state.activeFormFactor);
-        var isVideo = asset && asset.resource_type === 'video';
+        var isVideo = asset?.resource_type === 'video';
 
         return '<button type="button" id="cld-picker-btn" ' +
             'class="cld-picker' + (hasAsset ? ' has-asset' : '') + '" ' +
@@ -299,7 +299,7 @@
             },
             function (data) {
                 console.log('[CLD Widget] Advanced breakout callback data:', JSON.stringify(data));
-                if (data && data.value) {
+                if (data?.value) {
                     var returned = data.value;
                     console.log('[CLD Widget] Advanced returned value:', JSON.stringify(returned));
 
@@ -312,7 +312,7 @@
                     // survives SFCC storage) > playerConf.transStr (still present in
                     // the raw payload before SFCC strips it) > top-level transStr.
                     var transStr = '';
-                    if (returned.formValues && returned.formValues.video && returned.formValues.video.transStr) {
+                    if (returned.formValues?.video?.transStr) {
                         transStr = returned.formValues.video.transStr;
                     } else if (returned.playerConf) {
                         try { transStr = JSON.parse(returned.playerConf).transStr || ''; } catch (e) { /* ignore */ }
@@ -327,7 +327,7 @@
         );
     }
 
-    // ── Event binding ────────────────────────────────────────────────────
+    // Event binding
 
     function bindEvents() {
         // Tab clicks
@@ -358,7 +358,7 @@
             });
         }
 
-        // Transformation override textarea — disables Advanced while it has a value
+        // Transformation override textarea - disables Advanced while it has a value
         var transInput = document.getElementById('cld-trans-override');
         if (transInput) {
             transInput.addEventListener('input', function () {
@@ -410,7 +410,7 @@
         }
     }
 
-    // ── Bootstrap ────────────────────────────────────────────────────────
+    // Bootstrap
 
     subscribe('sfcc:ready', function (opts) {
         var value = opts.value;
@@ -421,7 +421,7 @@
         state.activeFormFactor = toFormFactor(viewport);
 
         // Seed player option defaults from site preference (passed via editor.configuration)
-        if (config && config.playerOptions) {
+        if (config?.playerOptions) {
             try {
                 var prefDefaults = JSON.parse(config.playerOptions);
                 state.playerOptions = Object.assign({}, state.playerOptions, prefDefaults);

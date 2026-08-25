@@ -10,12 +10,12 @@
     var FORM_FACTORS = ['mobile', 'tablet', 'desktop'];
     var TAB_ORDER    = ['desktop', 'mobile', 'tablet'];
 
-    // ── Inheritance ──────────────────────────────────────────────────────
+    // Inheritance
 
     function resolveAsset(formFactor) {
         if (state.formValues[formFactor]) return state.formValues[formFactor];
-        for (var i = 0; i < FORM_FACTORS.length; i++) {
-            if (state.formValues[FORM_FACTORS[i]]) return state.formValues[FORM_FACTORS[i]];
+        for (var ff of FORM_FACTORS) {
+            if (state.formValues[ff]) return state.formValues[ff];
         }
         return null;
     }
@@ -24,10 +24,10 @@
         return !state.formValues[formFactor] && !!resolveAsset(formFactor);
     }
 
-    // ── URL builders ─────────────────────────────────────────────────────
+    // URL builders
 
     function buildDeliveryUrl(asset) {
-        if (!asset || !asset.public_id) return '';
+        if (!asset?.public_id) return '';
         var cname = state.config.cname;
         var base = cname
             ? 'https://' + cname.replace(/^https?:\/\//, '')
@@ -37,14 +37,14 @@
     }
 
     function buildThumbnailUrl(asset) {
-        if (!asset || !asset.public_id) return '';
+        if (!asset?.public_id) return '';
         var cloudName = asset.cloudName || state.config.cloudName;
         var publicId = asset.public_id.replace(/\.[^/.]+$/, '');
         return 'https://res.cloudinary.com/' + cloudName +
             '/image/upload/w_400,h_160,c_fill,q_auto,f_jpg/' + publicId + '.jpg';
     }
 
-    // ── SFCC emit ────────────────────────────────────────────────────────
+    // SFCC emit
 
     function emitToSFCC() {
         var hasAny = FORM_FACTORS.some(function (ff) { return !!state.formValues[ff]; });
@@ -58,7 +58,7 @@
         });
     }
 
-    // ── Viewport → form factor ───────────────────────────────────────────
+    // Viewport to form factor
 
     function toFormFactor(viewport) {
         if (!viewport) return 'desktop';
@@ -80,7 +80,7 @@
         return 'desktop';
     }
 
-    // ── Initial value ────────────────────────────────────────────────────
+    // Initial value
 
     function parseInitialValue(value) {
         if (!value) return;
@@ -101,11 +101,9 @@
                 return;
             }
 
-            // Backward compat: single global transformationOverride → copy to all entries
+            // Backward compat: single global transformationOverride - copy to all entries
             var legacyOverride = value.transformationOverride ||
-                (value.studioConfig &&
-                 value.studioConfig.transformation &&
-                 value.studioConfig.transformation !== '[]'
+                (value.studioConfig?.transformation && value.studioConfig.transformation !== '[]'
                     ? value.studioConfig.transformation : '');
 
             if (legacyOverride) {
@@ -118,14 +116,14 @@
             return;
         }
 
-        // Legacy image.asset format → mobile slot
+        // Legacy image.asset format - mobile slot
         if (fv.image && fv.image.asset) {
             var asset = Object.assign({}, fv.image.asset, { cloudName: state.config.cloudName });
             state.formValues.mobile = { asset: asset, url: buildDeliveryUrl(asset) };
         }
     }
 
-    // ── Cloudinary MLW – SFCC breakout ───────────────────────────────────
+    // Cloudinary MLW - SFCC breakout
 
     function openMediaPicker() {
         emit(
@@ -134,7 +132,7 @@
                 payload: { id: 'mediaPicker', title: 'Cloudinary Image' }
             },
             function (data) {
-                if (data && data.value) {
+                if (data?.value) {
                     var asset = Object.assign({}, data.value, { cloudName: state.config.cloudName });
                     var url = buildDeliveryUrl(asset);
                     state.formValues[state.activeFormFactor] = { asset: asset, url: url };
@@ -145,7 +143,7 @@
         );
     }
 
-    // ── Render ───────────────────────────────────────────────────────────
+    // Render
 
     function render() {
         var root = document.getElementById('cld-widget-root');
@@ -241,7 +239,7 @@
             '</div>';
     }
 
-    // ── Studio Widget breakout ────────────────────────────────────────────
+    // Studio Widget breakout
 
     function openStudioWidget() {
         var ff = state.activeFormFactor;
@@ -252,7 +250,7 @@
             },
             function (data) {
                 console.log('[imageFormWidget] studioWidget callback:', JSON.stringify(data));
-                var val = data && data.value;
+                var val = data?.value;
                 if (!val) return;
 
                 var studioResult = (val.formValues && val.formValues.studioResult)
@@ -270,7 +268,7 @@
         );
     }
 
-    // ── Event binding ────────────────────────────────────────────────────
+    // Event binding
 
     function bindEvents() {
         document.querySelectorAll('.cld-ff-tab').forEach(function (btn) {
@@ -293,7 +291,7 @@
             });
         }
 
-        // Transformation override textarea — stored per active form factor
+        // Transformation override textarea - stored per active form factor
         var transInput = document.getElementById('cld-trans-override');
         if (transInput) {
             transInput.addEventListener('input', function () {
@@ -314,9 +312,9 @@
                 if (state.formValues[state.activeFormFactor]) {
                     state.formValues[state.activeFormFactor] = null;
                 } else {
-                    for (var i = 0; i < FORM_FACTORS.length; i++) {
-                        if (state.formValues[FORM_FACTORS[i]]) {
-                            state.formValues[FORM_FACTORS[i]] = null;
+                    for (var ff of FORM_FACTORS) {
+                        if (state.formValues[ff]) {
+                            state.formValues[ff] = null;
                             break;
                         }
                     }
@@ -327,7 +325,7 @@
         }
     }
 
-    // ── Bootstrap ────────────────────────────────────────────────────────
+    // Bootstrap
 
     subscribe('sfcc:ready', function (opts) {
         state.config = opts.config;

@@ -16,17 +16,14 @@
         document.body.appendChild(container);
 
         // Size the container to fill the modal viewport
-        parentIFrame.getPageInfo(function (info) {
-            var rem    = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-            var chrome = 55 + 55 + (4 * rem);
-            var h      = Math.max(Math.round(info.clientHeight - chrome), 400);
+        var rem    = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        var chrome = 55 + 55 + (4 * rem);
+        var h      = Math.max(Math.round(window.innerHeight - chrome), 400);
 
-            container.style.width  = '100%';
-            container.style.height = h + 'px';
-            parentIFrame.size(h);
+        container.style.width  = '100%';
+        container.style.height = h + 'px';
 
-            initWidget(_emit);
-        });
+        initWidget(_emit);
 
         function initWidget(emitFn) {
             var widget = window.cloudinary.studioWidget({
