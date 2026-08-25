@@ -1,5 +1,5 @@
 /**
- * studioWidget.js  –  SFCC Page Designer breakout editor
+ * studioWidget.js - SFCC Page Designer breakout editor
  *
  * Uses the official Cloudinary Studio Widget JS SDK:
  * https://studio-widget.cloudinary.com/latest/all.js
@@ -28,9 +28,6 @@
             initWidget(_emit);
         });
 
-        // ------------------------------------------------------------------
-        // Widget initialisation
-        // ------------------------------------------------------------------
         function initWidget(emitFn) {
             var widget = window.cloudinary.studioWidget({
                 cloudName: config.cloudName,
@@ -108,12 +105,10 @@
     });
 
     function getPublicId(value) {
-        if (!value || !value.formValues) return '';
-        var fv = value.formValues;
+        var fv = value?.formValues;
+        if (!fv) return '';
         var entry = fv.desktop || fv.tablet || fv.mobile;
-        if (entry && entry.asset && entry.asset.public_id) return entry.asset.public_id;
-        if (fv.image && fv.image.asset && fv.image.asset.public_id) return fv.image.asset.public_id;
-        return '';
+        return entry?.asset?.public_id || fv.image?.asset?.public_id || '';
     }
 
     /**
