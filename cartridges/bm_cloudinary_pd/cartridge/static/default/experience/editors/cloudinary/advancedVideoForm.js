@@ -9,7 +9,7 @@
  * exactly what the iframe reads.
  */
 function normalizeValueForIframe(value) {
-    if (!value || !value.formValues) return value;
+    if (!value?.formValues) return value;
     var fv = value.formValues;
 
     // Already in the old format - nothing to do

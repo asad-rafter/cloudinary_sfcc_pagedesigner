@@ -222,10 +222,7 @@
     }
 
     function buildFileRowHTML() {
-        var entry = resolveAsset(state.activeFormFactor);
-        var asset = entry ? entry.asset : null;
-        var publicId = asset ? asset.public_id : '';
-        var inherited = isInherited(state.activeFormFactor);
+        var publicId = resolveAsset(state.activeFormFactor)?.asset?.public_id || '';
 
         return '<div class="cld-file-row">' +
             '<input type="text" class="cld-file-input" readonly ' +

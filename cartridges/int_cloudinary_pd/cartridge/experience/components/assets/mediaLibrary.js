@@ -6,14 +6,14 @@
  * @returns {boolean}
  */
 function isNewFormat(val) {
-    if (!val || !val.formValues) return false;
+    if (!val?.formValues) return false;
     var fv = val.formValues;
     return fv.mobile !== undefined || fv.tablet !== undefined || fv.desktop !== undefined;
 }
 
 /**
  * Resolves the active form-factor based on the current request device.
- * @returns {'mobile'|'tablet'|'desktop'}
+ * @returns {string}
  */
 function getActiveFormFactor() {
     try {

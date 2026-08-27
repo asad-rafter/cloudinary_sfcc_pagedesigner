@@ -18,10 +18,10 @@
         <isif condition="${pdict.viewmodel.formFactorImages}">
             <picture>
                 <isif condition="${pdict.viewmodel.formFactorImages.mobile}">
-                    <source media="(max-width: ${pdict.viewmodel.mobileBreakpoint}px)" srcset="${pdict.viewmodel.formFactorImages.mobile}">
+                    <source media="(max-width: ${pdict.viewmodel.mobileBreakpoint}px)" srcset="${pdict.viewmodel.formFactorImages.mobile}"/>
                 </isif>
                 <isif condition="${pdict.viewmodel.formFactorImages.tablet}">
-                    <source media="(max-width: ${pdict.viewmodel.tabletBreakpoint}px)" srcset="${pdict.viewmodel.formFactorImages.tablet}">
+                    <source media="(max-width: ${pdict.viewmodel.tabletBreakpoint}px)" srcset="${pdict.viewmodel.formFactorImages.tablet}"/>
                 </isif>
                 <img class="component-media_library ml-image" src="${pdict.viewmodel.src}"
                     data-real-url="${pdict.viewmodel.src}" id="${pdict.viewmodel.id}" alt="${pdict.viewmodel.altText}"

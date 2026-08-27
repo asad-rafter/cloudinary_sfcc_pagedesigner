@@ -123,8 +123,7 @@
         var pidParts   = [];
         var inPid      = false;
 
-        for (var i = 0; i < segments.length; i++) {
-            var seg = segments[i];
+        for (var seg of segments) {
             if (!inPid && isTransformSegment(seg)) {
                 transParts.push(seg);
             } else {

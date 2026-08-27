@@ -246,7 +246,7 @@
 
 .cld-advanced-btn:disabled,
 .cld-advanced-btn[aria-disabled="true"] {
-    color: #c9c7c5;
+    color: #757575;
     cursor: not-allowed;
     background: #fff;
 }

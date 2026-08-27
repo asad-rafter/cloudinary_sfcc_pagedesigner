@@ -237,7 +237,7 @@
                 var val = data?.value;
                 if (!val) return;
 
-                var studioResult = (val.formValues && val.formValues.studioResult)
+                var studioResult = val.formValues?.studioResult
                                 || val.studioResult
                                 || null;
                 if (!studioResult) return;
