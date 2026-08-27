@@ -30,16 +30,15 @@ function getActiveFormFactor() {
 
 /**
  * Resolves the { asset, url } entry for the current device using the
- * Mobile → Tablet → Desktop inheritance fallback.
+ * Mobile -> Tablet -> Desktop inheritance fallback.
  * @param {Object} formValues
  * @returns {{ asset: Object, url: string }|null}
  */
 function resolveEntry(formValues) {
-    var order = ['mobile', 'tablet', 'desktop'];
     var ff = getActiveFormFactor();
     if (formValues[ff]) return formValues[ff];
-    for (var i = 0; i < order.length; i++) {
-        if (formValues[order[i]]) return formValues[order[i]];
+    for (var f of ['mobile', 'tablet', 'desktop']) {
+        if (formValues[f]) return formValues[f];
     }
     return null;
 }
@@ -121,6 +120,7 @@ module.exports.preRender = function (context, editorId) {
     var Logger = require('dw/system/Logger');
     var URLUtils = require('dw/web/URLUtils');
     var constants = require('~/cartridge/experience/utils/cloudinaryPDConstants').cloudinaryPDConstants;
+    var cloudinaryPDUtils = require('~/cartridge/experience/utils/cloudinaryPDUtils');
     var currentSite = require('dw/system/Site').getCurrent();
 
     var viewmodel = {};
@@ -128,15 +128,16 @@ module.exports.preRender = function (context, editorId) {
 
     if (empty(val)) return viewmodel;
 
-    // ── New per-form-factor format ────────────────────────────────────────
+    var cloudName = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCloudName');
+    var cname     = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCNAME');
+
+    // New per-form-factor format
     if (isNewFormat(val)) {
         var entry = resolveEntry(val.formValues);
-        if (!entry || !entry.asset) return viewmodel;
+        if (!entry?.asset) return viewmodel;
 
-        var asset     = entry.asset;
-        var publicId  = asset.public_id;
-        var cloudName = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCloudName');
-        var cname     = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCNAME');
+        var asset    = entry.asset;
+        var publicId = asset.public_id;
 
         var baseUrl = (cname && cname !== 'res.cloudinary.com')
             ? 'https://' + cname.replace(/^https?:\/\//, '')
@@ -189,14 +190,12 @@ module.exports.preRender = function (context, editorId) {
             transformationArr = [globalObj];
         }
 
-        // Build per-form-factor image URLs with inheritance (mobile → tablet → desktop)
-        var formFactorOrder = ['mobile', 'tablet', 'desktop'];
+        // Build per-form-factor image URLs with inheritance
         var formFactorImageUrls = {};
         var lastResolvedUrl = null;
-        for (var i = 0; i < formFactorOrder.length; i++) {
-            var formFactor = formFactorOrder[i];
+        for (var formFactor of ['mobile', 'tablet', 'desktop']) {
             var formFactorEntry = val.formValues[formFactor];
-            if (formFactorEntry && formFactorEntry.asset) {
+            if (formFactorEntry?.asset) {
                 var fileExtension = formFactorEntry.asset.format ? '.' + formFactorEntry.asset.format : '';
                 lastResolvedUrl = baseUrl + '/image/upload/' + (transPart ? transPart + '/' : '') + formFactorEntry.asset.public_id + fileExtension + constants.CLD_TRACKING_PARAM;
             }
@@ -229,17 +228,7 @@ module.exports.preRender = function (context, editorId) {
         }
         if (distinctImageCount > 1) {
             viewmodel.formFactorImages = formFactorImageUrls;
-            var breakpointsRaw = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerFormFactorBreakpoints');
-            var breakpoints = { mobile: 767, tablet: 1023 };
-            if (breakpointsRaw) {
-                try {
-                    var parsedBreakpoints = JSON.parse(breakpointsRaw);
-                    if (typeof parsedBreakpoints.mobile === 'number') breakpoints.mobile = parsedBreakpoints.mobile;
-                    if (typeof parsedBreakpoints.tablet === 'number') breakpoints.tablet = parsedBreakpoints.tablet;
-                } catch (e) {
-                    Logger.error('CloudinaryPageDesignerFormFactorBreakpoints is not valid JSON: {0}', e.message);
-                }
-            }
+            var breakpoints = cloudinaryPDUtils.parseFormFactorBreakpoints();
             viewmodel.mobileBreakpoint = breakpoints.mobile;
             viewmodel.tabletBreakpoint = breakpoints.tablet;
         }
@@ -247,12 +236,11 @@ module.exports.preRender = function (context, editorId) {
         return viewmodel;
     }
 
-    // ── Legacy format ─────────────────────────────────────────────────────
-    if (context.content[editorId] && context.content[editorId].imageUrl) {
-        var cname = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCNAME');
+    // Legacy format
+    if (context.content[editorId]?.imageUrl) {
         viewmodel.id = idSafeString(context.content[editorId].public_id + randomString(12));
         viewmodel.publicId = context.content[editorId].public_id;
-        viewmodel.cloudName = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCloudName');
+        viewmodel.cloudName = cloudName;
         if (cname !== 'res.cloudinary.com') {
             viewmodel.cname = cname;
         }

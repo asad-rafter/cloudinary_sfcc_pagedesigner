@@ -4,6 +4,7 @@
   "resources": {
     "scripts": [
       "https://media-library.cloudinary.com/global/all.js",
+      "/experience/editors/cloudinary/formFactorUtils.js",
       "/experience/editors/cloudinary/imageFormWidget.js"
     ],
     "styles": [

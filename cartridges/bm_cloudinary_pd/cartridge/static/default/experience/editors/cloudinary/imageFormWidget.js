@@ -61,23 +61,7 @@
     // Viewport to form factor
 
     function toFormFactor(viewport) {
-        if (!viewport) return 'desktop';
-        if (viewport.breakpoint) {
-            var vbp = viewport.breakpoint.toLowerCase();
-            if (vbp === 'mobile' || vbp === 'tablet' || vbp === 'desktop') return vbp;
-        }
-        var breakpoints = { mobile: 767, tablet: 1023 };
-        if (state.config && state.config.breakpoints) {
-            try {
-                var parsed = JSON.parse(state.config.breakpoints);
-                if (typeof parsed.mobile === 'number') breakpoints.mobile = parsed.mobile;
-                if (typeof parsed.tablet === 'number') breakpoints.tablet = parsed.tablet;
-            } catch (e) {}
-        }
-        var w = viewport.width || 1024;
-        if (w <= breakpoints.mobile) return 'mobile';
-        if (w <= breakpoints.tablet) return 'tablet';
-        return 'desktop';
+        return CldFormFactorUtils.toFormFactor(viewport, state.config && state.config.breakpoints);
     }
 
     // Initial value

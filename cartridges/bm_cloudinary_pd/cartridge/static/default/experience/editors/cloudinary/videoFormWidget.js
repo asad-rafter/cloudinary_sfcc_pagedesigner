@@ -17,8 +17,8 @@
 
     function resolveAsset(formFactor) {
         if (state.formValues[formFactor]) return state.formValues[formFactor];
-        for (var i = 0; i < FORM_FACTORS.length; i++) {
-            if (state.formValues[FORM_FACTORS[i]]) return state.formValues[FORM_FACTORS[i]];
+        for (var ff of FORM_FACTORS) {
+            if (state.formValues[ff]) return state.formValues[ff];
         }
         return null;
     }
@@ -68,23 +68,7 @@
     // Viewport -> form factor
 
     function toFormFactor(viewport) {
-        if (!viewport) return 'desktop';
-        if (viewport.breakpoint) {
-            var vbp = viewport.breakpoint.toLowerCase();
-            if (vbp === 'mobile' || vbp === 'tablet' || vbp === 'desktop') return vbp;
-        }
-        var breakpoints = { mobile: 767, tablet: 1023 };
-        if (state.config?.breakpoints) {
-            try {
-                var parsed = JSON.parse(state.config.breakpoints);
-                if (typeof parsed.mobile === 'number') breakpoints.mobile = parsed.mobile;
-                if (typeof parsed.tablet === 'number') breakpoints.tablet = parsed.tablet;
-            } catch (e) {}
-        }
-        var w = viewport.width || 1024;
-        if (w <= breakpoints.mobile) return 'mobile';
-        if (w <= breakpoints.tablet) return 'tablet';
-        return 'desktop';
+        return CldFormFactorUtils.toFormFactor(viewport, state.config?.breakpoints);
     }
 
     // Initial value
@@ -189,8 +173,7 @@
         ];
         var html = '<div class="cld-section">' +
             '<div class="cld-section-title">Player options</div>';
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
+        for (var item of items) {
             html += '<label class="cld-checkbox-label">' +
                 '<input type="checkbox" data-opt="' + item.key + '"' + (opts[item.key] ? ' checked' : '') + '>' +
                 ' ' + item.label +
@@ -397,9 +380,9 @@
                 if (state.formValues[state.activeFormFactor]) {
                     state.formValues[state.activeFormFactor] = null;
                 } else {
-                    for (var i = 0; i < FORM_FACTORS.length; i++) {
-                        if (state.formValues[FORM_FACTORS[i]]) {
-                            state.formValues[FORM_FACTORS[i]] = null;
+                    for (var ff of FORM_FACTORS) {
+                        if (state.formValues[ff]) {
+                            state.formValues[ff] = null;
                             break;
                         }
                     }

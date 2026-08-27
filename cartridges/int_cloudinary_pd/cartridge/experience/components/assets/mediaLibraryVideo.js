@@ -197,16 +197,15 @@ function getActiveFormFactor() {
 
 /**
  * Resolves the { asset, url } entry for the current device, applying the
- * Mobile → Tablet → Desktop inheritance fallback.
+ * Mobile -> Tablet -> Desktop inheritance fallback.
  * @param {Object} formValues
  * @returns {{ asset: Object, url: string }|null}
  */
 function resolveEntry(formValues) {
-    var order = ['mobile', 'tablet', 'desktop'];
     var ff = getActiveFormFactor();
     if (formValues[ff]) return formValues[ff];
-    for (var i = 0; i < order.length; i++) {
-        if (formValues[order[i]]) return formValues[order[i]];
+    for (var f of ['mobile', 'tablet', 'desktop']) {
+        if (formValues[f]) return formValues[f];
     }
     return null;
 }
@@ -346,13 +345,14 @@ function preRenderLegacy(context, val, viewmodel, currentSite, constants) {
 module.exports.preRender = function (context, editorId) {
     var currentSite = require('dw/system/Site').getCurrent();
     var constants = require('~/cartridge/experience/utils/cloudinaryPDConstants').cloudinaryPDConstants;
+    var cloudinaryPDUtils = require('~/cartridge/experience/utils/cloudinaryPDUtils');
 
     var val = context.content[editorId];
     var viewmodel = {};
 
     if (empty(val)) return viewmodel;
 
-    // ── New per-form-factor format ────────────────────────────────────────
+    // New per-form-factor format
     if (isNewFormat(val)) {
         var cname = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCNAME');
         if (cname !== 'res.cloudinary.com') {
@@ -375,11 +375,9 @@ module.exports.preRender = function (context, editorId) {
         var componentPlayerOpts = val.playerOptions || {};
         var playerOptKeys = ['autoplay', 'muted', 'loop', 'controls'];
 
-        var ffOrder = ['mobile', 'tablet', 'desktop'];
         var ffOptions = {};
 
-        for (var fi = 0; fi < ffOrder.length; fi++) {
-            var ff = ffOrder[fi];
+        for (var ff of ['mobile', 'tablet', 'desktop']) {
             var ffEntry = val.formValues[ff];
             if (!ffEntry || !ffEntry.asset) continue;
 
@@ -412,8 +410,7 @@ module.exports.preRender = function (context, editorId) {
             }
 
             // Apply per-component player options (autoplay, muted, loop, controls)
-            for (var pi = 0; pi < playerOptKeys.length; pi++) {
-                var pk = playerOptKeys[pi];
+            for (var pk of playerOptKeys) {
                 if (pk in componentPlayerOpts) {
                     ffConf.playerConfig[pk] = !!componentPlayerOpts[pk];
                 }
@@ -430,7 +427,7 @@ module.exports.preRender = function (context, editorId) {
         var hasAny = ffOptions.mobile || ffOptions.tablet || ffOptions.desktop;
         if (!hasAny) return viewmodel;
 
-        // Server-side default: prefer desktop → tablet → mobile (client-side JS will override)
+        // Server-side default: prefer desktop -> tablet -> mobile (client-side JS will override)
         var defaultOpt = ffOptions.desktop || ffOptions.tablet || ffOptions.mobile;
 
         viewmodel.cloudName = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerCloudName');
@@ -439,23 +436,12 @@ module.exports.preRender = function (context, editorId) {
         viewmodel.widgetOptions = defaultOpt.widgetOptions;
         viewmodel.formFactorOptions = JSON.stringify(ffOptions);
 
-        var breakpointsRaw = currentSite.getCustomPreferenceValue('CloudinaryPageDesignerFormFactorBreakpoints');
-        var breakpoints = { mobile: 767, tablet: 1023 };
-        if (breakpointsRaw) {
-            try {
-                var parsedBp = JSON.parse(breakpointsRaw);
-                if (typeof parsedBp.mobile === 'number') breakpoints.mobile = parsedBp.mobile;
-                if (typeof parsedBp.tablet === 'number') breakpoints.tablet = parsedBp.tablet;
-            } catch (e) {
-                require('dw/system/Logger').getLogger('int_cloudinary_pd', 'int_cloudinary_pd').error('CloudinaryPageDesignerFormFactorBreakpoints is not valid JSON: {0}', e.message);
-            }
-        }
-        viewmodel.formFactorBreakpoints = JSON.stringify(breakpoints);
+        viewmodel.formFactorBreakpoints = JSON.stringify(cloudinaryPDUtils.parseFormFactorBreakpoints());
 
         return viewmodel;
     }
 
-    // ── Legacy format ─────────────────────────────────────────────────────
+    // Legacy format
     preRenderLegacy(context, val, viewmodel, currentSite, constants);
     return viewmodel;
 };
