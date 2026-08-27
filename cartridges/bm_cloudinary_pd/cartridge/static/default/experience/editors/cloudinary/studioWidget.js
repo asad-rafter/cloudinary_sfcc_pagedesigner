@@ -7,7 +7,7 @@
 
 (() => {
     subscribe('sfcc:ready', function ({ value, config }) {
-        // Capture emit at subscribe time — stable reference across async callbacks
+        // Capture emit at subscribe time - stable reference across async callbacks
         var _emit = emit;
 
         // Container the SDK will mount the widget into
