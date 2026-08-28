@@ -1,5 +1,10 @@
 /* Shared form-factor utilities for Page Designer editor widgets */
 var CldFormFactorUtils = (function () {
+    var FORM_FACTORS = ['mobile', 'tablet', 'desktop'];
+    var TAB_ORDER    = ['desktop', 'mobile', 'tablet'];
+
+    // --- Breakpoints ---
+
     function parseBreakpoints(bpStr) {
         var bp = { mobile: 767, tablet: 1023 };
         if (bpStr) {
@@ -25,5 +30,80 @@ var CldFormFactorUtils = (function () {
         return 'desktop';
     }
 
-    return { parseBreakpoints: parseBreakpoints, toFormFactor: toFormFactor };
+    // --- Asset resolution ---
+
+    function resolveAsset(formValues, formFactor) {
+        if (formValues[formFactor]) return formValues[formFactor];
+        for (var ff of FORM_FACTORS) {
+            if (formValues[ff]) return formValues[ff];
+        }
+        return null;
+    }
+
+    function isInherited(formValues, formFactor) {
+        return !formValues[formFactor] && !!resolveAsset(formValues, formFactor);
+    }
+
+    // --- URL builders ---
+
+    function buildDeliveryUrl(asset, config) {
+        if (!asset?.public_id) return '';
+        var base = config.cname
+            ? 'https://' + config.cname.replace(/^https?:\/\//, '')
+            : 'https://res.cloudinary.com/' + config.cloudName;
+        var ext = asset.format ? '.' + asset.format : '';
+        return base + '/' + (asset.resource_type || 'image') + '/upload/' + asset.public_id + ext;
+    }
+
+    function buildThumbnailUrl(asset, config) {
+        if (!asset?.public_id) return '';
+        var cloudName = asset.cloudName || config.cloudName;
+        var publicId = asset.public_id.replace(/\.[^/.]+$/, '');
+        var resourceType = asset.resource_type === 'video' ? 'video' : 'image';
+        return 'https://res.cloudinary.com/' + cloudName +
+            '/' + resourceType + '/upload/w_400,h_160,c_fill,q_auto,f_jpg/' + publicId + '.jpg';
+    }
+
+    // --- HTML builders ---
+
+    function buildTabsHTML(activeFormFactor, formValues) {
+        var html = '<div class="cld-ff-tabs" role="tablist">';
+        TAB_ORDER.forEach(function (ff) {
+            var isActive     = ff === activeFormFactor;
+            var hasSelection = !!formValues[ff];
+            var label        = ff.charAt(0).toUpperCase() + ff.slice(1);
+            html += '<button role="tab" type="button" ' +
+                'class="cld-ff-tab' + (isActive ? ' active' : '') + '" ' +
+                'data-ff="' + ff + '" ' +
+                'aria-selected="' + isActive + '" ' +
+                'title="' + label + (hasSelection ? ' \u2013 selection set' : ' \u2013 no selection') + '">' +
+                label +
+                (hasSelection ? '<span class="cld-ff-tab-dot" aria-hidden="true"></span>' : '') +
+                '</button>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    // --- Render ---
+
+    function render(buildHTML, bindEvents) {
+        var root = document.getElementById('cld-widget-root');
+        if (!root) return;
+        root.innerHTML = buildHTML();
+        bindEvents();
+    }
+
+    return {
+        FORM_FACTORS:     FORM_FACTORS,
+        TAB_ORDER:        TAB_ORDER,
+        parseBreakpoints: parseBreakpoints,
+        toFormFactor:     toFormFactor,
+        resolveAsset:     resolveAsset,
+        isInherited:      isInherited,
+        buildDeliveryUrl: buildDeliveryUrl,
+        buildThumbnailUrl: buildThumbnailUrl,
+        buildTabsHTML:    buildTabsHTML,
+        render:           render
+    };
 }());

@@ -6,7 +6,7 @@
  * @returns {boolean}
  */
 function isNewFormat(val) {
-    if (!val?.formValues) return false;
+    if (!val || !val.formValues) return false;
     var fv = val.formValues;
     return fv.mobile !== undefined || fv.tablet !== undefined || fv.desktop !== undefined;
 }
@@ -120,7 +120,6 @@ module.exports.preRender = function (context, editorId) {
     var Logger = require('dw/system/Logger');
     var URLUtils = require('dw/web/URLUtils');
     var constants = require('~/cartridge/experience/utils/cloudinaryPDConstants').cloudinaryPDConstants;
-    var cloudinaryPDUtils = require('~/cartridge/experience/utils/cloudinaryPDUtils');
     var currentSite = require('dw/system/Site').getCurrent();
 
     var viewmodel = {};
@@ -134,7 +133,7 @@ module.exports.preRender = function (context, editorId) {
     // New per-form-factor format
     if (isNewFormat(val)) {
         var entry = resolveEntry(val.formValues);
-        if (!entry?.asset) return viewmodel;
+        if (!entry || !entry.asset) return viewmodel;
 
         var asset    = entry.asset;
         var publicId = asset.public_id;
@@ -195,9 +194,10 @@ module.exports.preRender = function (context, editorId) {
         var lastResolvedUrl = null;
         for (var formFactor of ['mobile', 'tablet', 'desktop']) {
             var formFactorEntry = val.formValues[formFactor];
-            if (formFactorEntry?.asset) {
+            if (formFactorEntry && formFactorEntry.asset) {
+                var ffTrans = (val.transformationOverrides && val.transformationOverrides[formFactor]) || transPart;
                 var fileExtension = formFactorEntry.asset.format ? '.' + formFactorEntry.asset.format : '';
-                lastResolvedUrl = baseUrl + '/image/upload/' + (transPart ? transPart + '/' : '') + formFactorEntry.asset.public_id + fileExtension + constants.CLD_TRACKING_PARAM;
+                lastResolvedUrl = baseUrl + '/image/upload/' + (ffTrans ? ffTrans + '/' : '') + formFactorEntry.asset.public_id + fileExtension + constants.CLD_TRACKING_PARAM;
             }
             if (lastResolvedUrl) formFactorImageUrls[formFactor] = lastResolvedUrl;
         }
@@ -228,6 +228,7 @@ module.exports.preRender = function (context, editorId) {
         }
         if (distinctImageCount > 1) {
             viewmodel.formFactorImages = formFactorImageUrls;
+            var cloudinaryPDUtils = require('~/cartridge/experience/utils/cloudinaryPDUtils');
             var breakpoints = cloudinaryPDUtils.parseFormFactorBreakpoints();
             viewmodel.mobileBreakpoint = breakpoints.mobile;
             viewmodel.tabletBreakpoint = breakpoints.tablet;
@@ -237,7 +238,7 @@ module.exports.preRender = function (context, editorId) {
     }
 
     // Legacy format
-    if (context.content[editorId]?.imageUrl) {
+    if (context.content[editorId] && context.content[editorId].imageUrl) {
         viewmodel.id = idSafeString(context.content[editorId].public_id + randomString(12));
         viewmodel.publicId = context.content[editorId].public_id;
         viewmodel.cloudName = cloudName;

@@ -164,7 +164,7 @@ function videoPlayerConfigs(conf) {
  * @returns {boolean} true if if it has a value
  */
 function hasVideo(val) {
-    return val.formValues?.video?.asset;
+    return val.formValues && val.formValues.video && val.formValues.video.asset;
 }
 
 /**
@@ -173,7 +173,7 @@ function hasVideo(val) {
  * @returns {boolean}
  */
 function isNewFormat(val) {
-    if (!val?.formValues) return false;
+    if (!val || !val.formValues) return false;
     var fv = val.formValues;
     return fv.mobile !== undefined || fv.tablet !== undefined || fv.desktop !== undefined;
 }
@@ -379,7 +379,7 @@ module.exports.preRender = function (context, editorId) {
 
         for (var ff of ['mobile', 'tablet', 'desktop']) {
             var ffEntry = val.formValues[ff];
-            if (!ffEntry?.asset) continue;
+            if (!ffEntry || !ffEntry.asset) continue;
 
             var ffAsset = ffEntry.asset;
             var ffConf = {
@@ -402,7 +402,7 @@ module.exports.preRender = function (context, editorId) {
             ffQueryParams[constants.CLD_TRACKING_PARAM.slice(1).split('=')[0]] = constants.CLD_TRACKING_PARAM.slice(1).split('=')[1];
             ffConf.sourceConfig.queryParams = ffQueryParams;
 
-            if (effectivePosterTrans?.length) {
+            if (effectivePosterTrans && effectivePosterTrans.length) {
                 ffConf.playerConfig.posterOptions.transformation = effectivePosterTrans;
             }
             if ('videoAspectRatio' in context.content) {

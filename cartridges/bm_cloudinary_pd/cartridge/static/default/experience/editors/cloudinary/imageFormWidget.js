@@ -4,44 +4,27 @@
         transformationOverrides: { mobile: '', tablet: '', desktop: '' },
         activeFormFactor: 'desktop',
         config: null,
-        ml: null
+        ml: null,
+        extraFields: {}  // unmanaged fields from original value carried through on re-save
     };
 
-    var FORM_FACTORS = ['mobile', 'tablet', 'desktop'];
-    var TAB_ORDER    = ['desktop', 'mobile', 'tablet'];
-
-    // Inheritance
+    var FORM_FACTORS = CldFormFactorUtils.FORM_FACTORS;
+    var TAB_ORDER    = CldFormFactorUtils.TAB_ORDER;
 
     function resolveAsset(formFactor) {
-        if (state.formValues[formFactor]) return state.formValues[formFactor];
-        for (var ff of FORM_FACTORS) {
-            if (state.formValues[ff]) return state.formValues[ff];
-        }
-        return null;
+        return CldFormFactorUtils.resolveAsset(state.formValues, formFactor);
     }
 
     function isInherited(formFactor) {
-        return !state.formValues[formFactor] && !!resolveAsset(formFactor);
+        return CldFormFactorUtils.isInherited(state.formValues, formFactor);
     }
 
-    // URL builders
-
     function buildDeliveryUrl(asset) {
-        if (!asset?.public_id) return '';
-        var cname = state.config.cname;
-        var base = cname
-            ? 'https://' + cname.replace(/^https?:\/\//, '')
-            : 'https://res.cloudinary.com/' + state.config.cloudName;
-        var ext = asset.format ? '.' + asset.format : '';
-        return base + '/' + (asset.resource_type || 'image') + '/upload/' + asset.public_id + ext;
+        return CldFormFactorUtils.buildDeliveryUrl(asset, state.config);
     }
 
     function buildThumbnailUrl(asset) {
-        if (!asset?.public_id) return '';
-        var cloudName = asset.cloudName || state.config.cloudName;
-        var publicId = asset.public_id.replace(/\.[^/.]+$/, '');
-        return 'https://res.cloudinary.com/' + cloudName +
-            '/image/upload/w_400,h_160,c_fill,q_auto,f_jpg/' + publicId + '.jpg';
+        return CldFormFactorUtils.buildThumbnailUrl(asset, state.config);
     }
 
     // SFCC emit
@@ -51,10 +34,10 @@
         emit({ type: 'sfcc:valid', payload: { valid: hasAny } });
         emit({
             type: 'sfcc:value',
-            payload: hasAny ? {
-                formValues:            state.formValues,
+            payload: hasAny ? Object.assign({}, state.extraFields, {
+                formValues:              state.formValues,
                 transformationOverrides: state.transformationOverrides
-            } : null
+            }) : null
         });
     }
 
@@ -66,8 +49,16 @@
 
     // Initial value
 
+    var MANAGED_FIELDS = ['formValues', 'transformationOverrides', 'transformationOverride', 'studioConfig'];
+
     function parseInitialValue(value) {
         if (!value) return;
+
+        // Carry through any fields the widget doesn't manage (e.g. accessibility, link)
+        Object.keys(value).forEach(function (k) {
+            if (MANAGED_FIELDS.indexOf(k) === -1) state.extraFields[k] = value[k];
+        });
+
         if (!value.formValues) return;
         var fv = value.formValues;
 
@@ -130,10 +121,7 @@
     // Render
 
     function render() {
-        var root = document.getElementById('cld-widget-root');
-        if (!root) return;
-        root.innerHTML = buildHTML();
-        bindEvents();
+        CldFormFactorUtils.render(buildHTML, bindEvents);
     }
 
     function buildHTML() {
@@ -141,22 +129,7 @@
     }
 
     function buildTabsHTML() {
-        var html = '<div class="cld-ff-tabs" role="tablist">';
-        TAB_ORDER.forEach(function (ff) {
-            var isActive     = ff === state.activeFormFactor;
-            var hasSelection = !!state.formValues[ff];
-            var label        = ff.charAt(0).toUpperCase() + ff.slice(1);
-            html += '<button role="tab" type="button" ' +
-                'class="cld-ff-tab' + (isActive ? ' active' : '') + '" ' +
-                'data-ff="' + ff + '" ' +
-                'aria-selected="' + isActive + '" ' +
-                'title="' + label + (hasSelection ? ' \u2013 selection set' : ' \u2013 no selection') + '">' +
-                label +
-                (hasSelection ? '<span class="cld-ff-tab-dot" aria-hidden="true"></span>' : '') +
-                '</button>';
-        });
-        html += '</div>';
-        return html;
+        return CldFormFactorUtils.buildTabsHTML(state.activeFormFactor, state.formValues);
     }
 
     function buildPickerHTML() {
