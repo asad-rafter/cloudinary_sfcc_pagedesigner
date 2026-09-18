@@ -16,14 +16,82 @@
         document.body.appendChild(container);
 
         // Size the container to fill the modal viewport
-        var rem    = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-        var chrome = 55 + 55 + (4 * rem);
-        var h      = Math.max(Math.round(window.innerHeight - chrome), 400);
+        parentIFrame.getPageInfo(function (info) {
+            var rem    = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+            var chrome = 55 + 55 + (4 * rem);
+            var h      = Math.max(Math.round(info.clientHeight - chrome), 400);
 
-        container.style.width  = '100%';
-        container.style.height = h + 'px';
+            container.style.width  = '100%';
+            container.style.height = '100%';
+            parentIFrame.size(h);
 
-        initWidget(_emit);
+            initWidget(_emit);
+        });
+
+        function showInsertSuccess() {
+            var existing = document.getElementById('cld-insert-msg');
+            if (existing) existing.parentNode.removeChild(existing);
+
+            var insertBtn = null;
+            var btns = document.querySelectorAll('button');
+            for (var i = 0; i < btns.length; i++) {
+                if (btns[i].textContent.trim().toLowerCase() === 'insert') {
+                    insertBtn = btns[i];
+                    break;
+                }
+            }
+
+            var msg = document.createElement('div');
+            msg.id = 'cld-insert-msg';
+
+            if (insertBtn) {
+                var rect = insertBtn.getBoundingClientRect();
+                msg.style.cssText = [
+                    'position:fixed',
+                    'top:' + (rect.bottom + 8) + 'px',
+                    'left:' + (rect.left + rect.width / 2) + 'px',
+                    'transform:translateX(-50%)',
+                    'display:inline-flex', 'align-items:center', 'gap:8px',
+                    'background:#0f172a', 'color:#f8fafc',
+                    'font-family:system-ui,sans-serif', 'font-size:13px', 'font-weight:500',
+                    'padding:10px 18px', 'border-radius:8px',
+                    'box-shadow:0 4px 16px rgba(0,0,0,0.25)',
+                    'z-index:99999', 'pointer-events:none',
+                    'white-space:nowrap',
+                    'animation:cld-fadein 0.2s ease'
+                ].join(';');
+            } else {
+                msg.style.cssText = [
+                    'position:fixed', 'top:60px', 'right:16px',
+                    'display:inline-flex', 'align-items:center', 'gap:8px',
+                    'background:#0f172a', 'color:#f8fafc',
+                    'font-family:system-ui,sans-serif', 'font-size:13px', 'font-weight:500',
+                    'padding:10px 18px', 'border-radius:8px',
+                    'box-shadow:0 4px 16px rgba(0,0,0,0.25)',
+                    'z-index:99999', 'pointer-events:none',
+                    'white-space:nowrap',
+                    'animation:cld-fadein-right 0.2s ease'
+                ].join(';');
+            }
+
+            msg.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"' +
+                ' fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+                '<polyline points="20 6 9 17 4 12"/></svg>' +
+                "Already inserted. Click 'Apply' to sync your edits.";
+
+            if (!document.getElementById('cld-insert-msg-style')) {
+                var style = document.createElement('style');
+                style.id = 'cld-insert-msg-style';
+                style.textContent =
+                    '@keyframes cld-fadein{from{opacity:0;transform:translateX(-50%) translateY(-4px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}' +
+                    '@keyframes cld-fadein-right{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}';
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(msg);
+            setTimeout(function () { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 4000);
+        }
 
         function initWidget(emitFn) {
             var widget = window.cloudinary.studioWidget({
@@ -36,13 +104,6 @@
             if (publicId) {
                 widget.update({ publicIds: [publicId] });
             }
-
-            widget.show();
-
-            // Destroy the widget cleanly when SFCC closes the breakout modal
-            window.addEventListener('pagehide', function () {
-                try { widget.destroy(); } catch (e) {}
-            });
 
             widget.on('insert', function (payload) {
                 try {
@@ -81,22 +142,17 @@
                     };
 
                     emitFn({ type: 'sfcc:value', payload: result });
-
-                    // Close the breakout modal by clicking SFCC's Apply button in the parent frame
-                    setTimeout(function () {
-                        try {
-                            for (var btn of window.parent.document.querySelectorAll('button')) {
-                                if (btn.textContent.trim() === 'Apply') {
-                                    btn.click();
-                                    break;
-                                }
-                            }
-                        } catch (e) { /* cross-origin guard */ }
-                    }, 50);
+                    showInsertSuccess();
 
                 } catch (err) {
                     console.error('[CLD Studio] insert handler error:', err);
                 }
+            });
+
+            widget.show();
+
+            window.addEventListener('pagehide', function () {
+                try { widget.destroy(); } catch (e) {}
             });
         }
     });

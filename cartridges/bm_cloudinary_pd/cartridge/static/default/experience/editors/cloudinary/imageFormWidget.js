@@ -110,6 +110,11 @@
                 if (data?.value) {
                     var asset = Object.assign({}, data.value, { cloudName: state.config.cloudName });
                     var url = buildDeliveryUrl(asset);
+
+                    if (asset.derived && asset.derived.length > 0 && asset.derived[0].raw_transformation) {
+                        state.transformationOverrides[state.activeFormFactor] = asset.derived[0].raw_transformation;
+                    }
+
                     state.formValues[state.activeFormFactor] = { asset: asset, url: url };
                     render();
                     emitToSFCC();
@@ -143,7 +148,7 @@
             'aria-label="' + (hasAsset ? 'Change selected image' : 'Select image from Cloudinary') + '">' +
             (hasAsset ? '<img class="cld-picker-thumb" src="' + buildThumbnailUrl(asset) + '" alt="" aria-hidden="true">' : '') +
             (inherited ? '<span class="cld-picker-badge cld-picker-badge--inherited">Inherited</span>' : '') +
-            (hasAsset && !inherited ? '<span class="cld-picker-badge cld-picker-badge--type">IMAGE</span>' : '') +
+            (hasAsset && !inherited ? '<span class="cld-picker-badge cld-picker-badge--type">Original Image</span>' : '') +
             '<span class="cld-picker-overlay">' +
             '<span>' + (hasAsset ? 'Change image' : 'Select image') + '</span>' +
             '</span>' +
@@ -182,7 +187,6 @@
 
         return '<div class="cld-section cld-section--advanced">' +
             '<button type="button" id="cld-advanced-btn" class="cld-advanced-btn"' +
-            (hasOverride ? ' disabled aria-disabled="true"' : '') +
             '>Advanced</button>' +
             '<div class="cld-adv-override">' +
             '<label class="cld-adv-override-label" for="cld-trans-override">' +
@@ -206,19 +210,25 @@
                 payload: { id: 'studioWidget', title: 'Cloudinary Studio Widget' }
             },
             function (data) {
-                console.log('[imageFormWidget] studioWidget callback:', JSON.stringify(data));
-                var val = data?.value;
+                var val = data && data.value;
                 if (!val) return;
 
-                var studioResult = val.formValues?.studioResult
+                var studioResult = (val.formValues && val.formValues.studioResult)
                                 || val.studioResult
                                 || null;
                 if (!studioResult) return;
 
                 var trans    = studioResult.transformation;
                 var override = (trans && trans !== '[]') ? trans : '';
+                var pid      = studioResult.public_id;
 
                 state.transformationOverrides[ff] = override;
+
+                if (pid) {
+                    var asset = { public_id: pid, cloudName: state.config.cloudName };
+                    state.formValues[ff] = { asset: asset, url: buildDeliveryUrl(asset) };
+                }
+
                 render();
                 emitToSFCC();
             }
@@ -243,8 +253,10 @@
 
         var advBtn = document.getElementById('cld-advanced-btn');
         if (advBtn) {
+            advBtn.removeAttribute('disabled');
+            advBtn.removeAttribute('aria-disabled');
             advBtn.addEventListener('click', function () {
-                if (!advBtn.disabled) openStudioWidget();
+                openStudioWidget();
             });
         }
 
@@ -254,11 +266,6 @@
             transInput.addEventListener('input', function () {
                 var val = transInput.value.trim();
                 state.transformationOverrides[state.activeFormFactor] = val;
-                var btn = document.getElementById('cld-advanced-btn');
-                if (btn) {
-                    btn.disabled = !!val;
-                    btn.setAttribute('aria-disabled', String(!!val));
-                }
                 emitToSFCC();
             });
         }

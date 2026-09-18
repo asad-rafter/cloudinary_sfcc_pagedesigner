@@ -243,8 +243,13 @@ function getCloudinaryVideoTransformation(context) {
  * Convert "true"/"false" strings to boolean
  */
 function normalizeBoolean(value) {
-    if (value === "true") return true;
-    if (value === "false") return false;
+    if (value === true || value === "true") return true;
+    if (value === false || value === "false") return false;
+    if (value !== null && value !== undefined) {
+        var s = String(value);
+        if (s === "true") return true;
+        if (s === "false") return false;
+    }
     return value;
 }
 
@@ -278,25 +283,31 @@ function getContentVideoPlayerOptions() {
  * @param {Boolean} overrideGlobalConfigs override the global configs
  * @returns {Object} video player options object
  */
+var PD_CONTROLLED_KEYS = ['autoplay', 'muted', 'loop', 'controls'];
+
 function mergePlayerConfig(videoPlayerOptions, configurations, overrideGlobalConfigs) {
     overrideGlobalConfigs = normalizeBoolean(overrideGlobalConfigs);
     var mergedConfigs = {};
     var defaults = videoPlayerOptions || {};
-    for (var key in defaults) {
-        if (defaults.hasOwnProperty(key)) {
-            mergedConfigs[key] = normalizeBoolean(defaults[key]);
-        }
-    }
-    for (var key in configurations) {
-        if (configurations.hasOwnProperty(key)) {
-            var overrideVal = normalizeBoolean(configurations[key]);
-            if (overrideGlobalConfigs === true) {
-                mergedConfigs[key] = overrideVal;
-            } else if(!defaults.hasOwnProperty(key)) {
-                mergedConfigs[key] = overrideVal;
+
+    if (overrideGlobalConfigs === true) {
+        for (var key in defaults) {
+            if (defaults.hasOwnProperty(key) && PD_CONTROLLED_KEYS.indexOf(key) === -1) {
+                mergedConfigs[key] = normalizeBoolean(defaults[key]);
             }
         }
+        for (var key in configurations) {
+            if (configurations.hasOwnProperty(key)) mergedConfigs[key] = normalizeBoolean(configurations[key]);
+        }
+    } else {
+        for (var key in configurations) {
+            if (configurations.hasOwnProperty(key)) mergedConfigs[key] = normalizeBoolean(configurations[key]);
+        }
+        for (var key in defaults) {
+            if (defaults.hasOwnProperty(key)) mergedConfigs[key] = normalizeBoolean(defaults[key]);
+        }
     }
+
     return mergedConfigs;
 }
 
@@ -362,18 +373,25 @@ module.exports.preRender = function (context, editorId) {
         var videoPosterTrans = getCloudinaryVideoTransformation(context);
         var videoPlayerOptions = getContentVideoPlayerOptions();
 
-        // Per-component transformation override (raw URL-syntax string)
         var transformationOverride = val.transformationOverride || '';
 
-        // Per-component poster mode: 'first_frame' appends a so_0 transformation
         var posterMode = val.posterMode || 'auto';
         var effectivePosterTrans = (posterMode === 'first_frame')
             ? videoPosterTrans.concat([{ raw_transformation: 'so_0' }])
             : videoPosterTrans;
 
-        // Per-component player options saved by the widget
-        var componentPlayerOpts = val.playerOptions || {};
-        var playerOptKeys = ['autoplay', 'muted', 'loop', 'controls'];
+        var componentPlayerOpts = {};
+        var _po = val.playerOptions;
+        if (_po) {
+            var _poKeys = ['autoplay', 'muted', 'loop', 'controls'];
+            for (var _i = 0; _i < _poKeys.length; _i++) {
+                var _pk = _poKeys[_i];
+                var _pv = _po[_pk];
+                if (_pv !== undefined && _pv !== null) {
+                    componentPlayerOpts[_pk] = normalizeBoolean(_pv);
+                }
+            }
+        }
 
         var ffOptions = {};
 
@@ -409,14 +427,8 @@ module.exports.preRender = function (context, editorId) {
                 ffConf.playerConfig.aspectRatio = context.content.videoAspectRatio;
             }
 
-            // Apply per-component player options (autoplay, muted, loop, controls)
-            for (var pk of playerOptKeys) {
-                if (pk in componentPlayerOpts) {
-                    ffConf.playerConfig[pk] = !!componentPlayerOpts[pk];
-                }
-            }
+            var ffMergedConfig = mergePlayerConfig(videoPlayerOptions, Object.assign({}, componentPlayerOpts, ffConf.playerConfig), context.content.overrideGlobalConfigs);
 
-            var ffMergedConfig = mergePlayerConfig(videoPlayerOptions, ffConf.playerConfig, context.content.overrideGlobalConfigs);
             ffOptions[ff] = {
                 public_id: ffAsset.public_id,
                 widgetOptions: JSON.stringify({ playerConfig: ffMergedConfig, sourceConfig: ffConf.sourceConfig })

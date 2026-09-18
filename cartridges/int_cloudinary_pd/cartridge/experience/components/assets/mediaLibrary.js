@@ -37,10 +37,8 @@ function getActiveFormFactor() {
 function resolveEntry(formValues) {
     var ff = getActiveFormFactor();
     if (formValues[ff]) return formValues[ff];
-    for (var f of ['mobile', 'tablet', 'desktop']) {
-        if (formValues[f]) return formValues[f];
-    }
-    return null;
+    // Desktop is the primary base; mobile/tablet inherit from desktop, not each other
+    return formValues['desktop'] || formValues['tablet'] || formValues['mobile'] || null;
 }
 
 /**
@@ -142,64 +140,72 @@ module.exports.preRender = function (context, editorId) {
             ? 'https://' + cname.replace(/^https?:\/\//, '')
             : 'https://res.cloudinary.com/' + cloudName;
 
-        // Transformation override: fall back through save-format generations
+        // Global transformation: site prefs or legacy singular override (applies to ALL form factors as fallback)
         var legacyStudioTrans = val.studioConfig &&
             val.studioConfig.transformation &&
             val.studioConfig.transformation !== '[]'
                 ? val.studioConfig.transformation : '';
-        var transformationOverride = val.transformationOverride
-            || legacyStudioTrans
-            || '';
-        var isOverride = !!transformationOverride;
+        var globalOverride = val.transformationOverride || legacyStudioTrans || '';
+        var isGlobalOverride = !!globalOverride;
 
-        // Build transformation string for the delivery URL
-        var transPart = '';
+        // Build the global transformation string (site prefs only — NOT per-FF overrides)
+        var globalTransPart = '';
         var transformationArr = [];
-        if (isOverride) {
-            transPart = transformationOverride;
-            transformationArr = [{ raw_transformation: transformationOverride }];
+        if (isGlobalOverride) {
+            globalTransPart = globalOverride;
+            transformationArr = [{ raw_transformation: globalOverride }];
         } else {
-            // Apply global image transformations from site preferences
             var globalObj = {};
             var dprPref = currentSite.getCustomPreferenceValue('CloudinaryImageTransformationsDPR');
             var fmtPref = currentSite.getCustomPreferenceValue('CloudinaryImageTransformationsFormat');
             var qualPref = currentSite.getCustomPreferenceValue('CloudinaryImageTransformationsQuality');
             var rawPref = currentSite.getCustomPreferenceValue('CloudinaryImageTransformations');
 
-            if (dprPref && dprPref.getValue() !== 'none') {
-                globalObj.dpr = dprPref.getValue();
-            }
-            if (fmtPref && fmtPref.getValue() !== 'none') {
-                globalObj.fetchFormat = fmtPref.getValue();
-            }
-            if (qualPref && qualPref.getValue() !== 'none') {
-                globalObj.quality = qualPref.getValue();
-            }
-            if (rawPref) {
-                globalObj.raw_transformation = rawPref;
-            }
+            if (dprPref && dprPref.getValue() !== 'none') { globalObj.dpr = dprPref.getValue(); }
+            if (fmtPref && fmtPref.getValue() !== 'none') { globalObj.fetchFormat = fmtPref.getValue(); }
+            if (qualPref && qualPref.getValue() !== 'none') { globalObj.quality = qualPref.getValue(); }
+            if (rawPref) { globalObj.raw_transformation = rawPref; }
 
-            // Build URL-syntax string for the delivery URL
             var urlParts = [];
             if (globalObj.dpr)         urlParts.push('dpr_' + globalObj.dpr);
             if (globalObj.fetchFormat) urlParts.push('f_' + globalObj.fetchFormat);
             if (globalObj.quality)     urlParts.push('q_' + globalObj.quality);
             if (rawPref)               urlParts.push(rawPref);
-            transPart = urlParts.join(',');
+            globalTransPart = urlParts.join(',');
             transformationArr = [globalObj];
         }
 
-        // Build per-form-factor image URLs with inheritance
+        // Per-FF override for the primary/viewmodel URL (resolved form factor only)
+        var resolvedFF = getActiveFormFactor();
+        if (!val.formValues[resolvedFF]) {
+            resolvedFF = val.formValues['desktop'] ? 'desktop'
+                       : val.formValues['tablet']  ? 'tablet'
+                       : 'mobile';
+        }
+        var ffSpecificOverride = (val.transformationOverrides && val.transformationOverrides[resolvedFF]) || '';
+        var transPart = ffSpecificOverride || globalTransPart;
+        var isOverride = !!(ffSpecificOverride || isGlobalOverride);
+        if (ffSpecificOverride) {
+            transformationArr = [{ raw_transformation: ffSpecificOverride }];
+        }
+
+        // Build per-form-factor image URLs — each FF uses its OWN override, falling back to globalTransPart only
         var formFactorImageUrls = {};
         var lastResolvedUrl = null;
         for (var formFactor of ['mobile', 'tablet', 'desktop']) {
             var formFactorEntry = val.formValues[formFactor];
             if (formFactorEntry && formFactorEntry.asset) {
-                var ffTrans = (val.transformationOverrides && val.transformationOverrides[formFactor]) || transPart;
+                var ffTrans = (val.transformationOverrides && val.transformationOverrides[formFactor]) || globalTransPart;
                 var fileExtension = formFactorEntry.asset.format ? '.' + formFactorEntry.asset.format : '';
                 lastResolvedUrl = baseUrl + '/image/upload/' + (ffTrans ? ffTrans + '/' : '') + formFactorEntry.asset.public_id + fileExtension + constants.CLD_TRACKING_PARAM;
             }
             if (lastResolvedUrl) formFactorImageUrls[formFactor] = lastResolvedUrl;
+        }
+
+        var desktopFallback = formFactorImageUrls['desktop'] || null;
+        if (desktopFallback) {
+            if (!formFactorImageUrls['mobile']) formFactorImageUrls['mobile'] = desktopFallback;
+            if (!formFactorImageUrls['tablet']) formFactorImageUrls['tablet'] = desktopFallback;
         }
 
         var ext          = asset.format ? '.' + asset.format : '';

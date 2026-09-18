@@ -212,7 +212,6 @@
         var hasOverride = !!state.transformationOverride;
         return '<div class="cld-section cld-section--advanced">' +
             '<button type="button" id="cld-advanced-btn" class="cld-advanced-btn"' +
-            (hasOverride ? ' disabled aria-disabled="true"' : '') +
             '>Advanced</button>' +
             '<div class="cld-adv-override">' +
             '<label class="cld-adv-override-label" for="cld-trans-override">' +
@@ -296,8 +295,10 @@
         // Advanced button
         var advBtn = document.getElementById('cld-advanced-btn');
         if (advBtn) {
+            advBtn.removeAttribute('disabled');
+            advBtn.removeAttribute('aria-disabled');
             advBtn.addEventListener('click', function () {
-                if (!advBtn.disabled) openAdvancedConfig();
+                openAdvancedConfig();
             });
         }
 
@@ -306,11 +307,6 @@
         if (transInput) {
             transInput.addEventListener('input', function () {
                 state.transformationOverride = transInput.value.trim();
-                var btn = document.getElementById('cld-advanced-btn');
-                if (btn) {
-                    btn.disabled = !!state.transformationOverride;
-                    btn.setAttribute('aria-disabled', String(!!state.transformationOverride));
-                }
                 emitToSFCC();
             });
         }

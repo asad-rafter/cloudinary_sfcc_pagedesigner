@@ -34,10 +34,8 @@ var CldFormFactorUtils = (function () {
 
     function resolveAsset(formValues, formFactor) {
         if (formValues[formFactor]) return formValues[formFactor];
-        for (var ff of FORM_FACTORS) {
-            if (formValues[ff]) return formValues[ff];
-        }
-        return null;
+        // Desktop is the primary base; mobile/tablet inherit from desktop, not each other
+        return formValues['desktop'] || formValues['tablet'] || formValues['mobile'] || null;
     }
 
     function isInherited(formValues, formFactor) {
@@ -57,11 +55,14 @@ var CldFormFactorUtils = (function () {
 
     function buildThumbnailUrl(asset, config) {
         if (!asset?.public_id) return '';
-        var cloudName = asset.cloudName || config.cloudName;
-        var publicId = asset.public_id.replace(/\.[^/.]+$/, '');
+        var cloudName = asset.cloudName || (config && config.cloudName) || '';
+        var publicId = asset.public_id;
+        if (asset.format && publicId.slice(-(asset.format.length + 1)) === '.' + asset.format) {
+            publicId = publicId.slice(0, -(asset.format.length + 1));
+        }
         var resourceType = asset.resource_type === 'video' ? 'video' : 'image';
         return 'https://res.cloudinary.com/' + cloudName +
-            '/' + resourceType + '/upload/w_400,h_160,c_fill,q_auto,f_jpg/' + publicId + '.jpg';
+            '/' + resourceType + '/upload/w_800,c_fit,q_auto,f_auto/' + publicId;
     }
 
     // --- HTML builders ---
