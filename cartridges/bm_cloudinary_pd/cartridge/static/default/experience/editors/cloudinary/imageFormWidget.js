@@ -307,4 +307,12 @@
         state.activeFormFactor = toFormFactor(viewport);
         render();
     });
+
+    listen('sfcc:value', function (value) {
+        state.formValues      = { mobile: null, tablet: null, desktop: null };
+        state.transformationOverrides = { mobile: '', tablet: '', desktop: '' };
+        state.extraFields     = {};
+        parseInitialValue(value);
+        render();
+    });
 })();

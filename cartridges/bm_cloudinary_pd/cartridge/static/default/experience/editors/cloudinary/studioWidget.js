@@ -97,12 +97,19 @@
             var widget = window.cloudinary.studioWidget({
                 cloudName: config.cloudName,
                 apiKey:    config.apiKey,
-                appendTo:  '#cld-studio-container'
+                appendTo:  '#cld-studio-container',
+                featureConfig: {
+                    hideCloseButton: true
+                }
             });
 
             var publicId = getPublicId(value);
-            if (publicId) {
-                widget.update({ publicIds: [publicId] });
+            var transformation = getTransformation(value);
+            if (publicId || transformation) {
+                var updateOpts = {};
+                if (publicId) updateOpts.publicIds = [publicId];
+                if (transformation) updateOpts.transformation = transformation;
+                widget.update(updateOpts);
             }
 
             widget.on('insert', function (payload) {
@@ -149,7 +156,7 @@
                 }
             });
 
-            widget.show();
+            widget.show({resetState: true});
 
             window.addEventListener('pagehide', function () {
                 try { widget.destroy(); } catch (e) {}
@@ -162,6 +169,18 @@
         if (!fv) return '';
         var entry = fv.desktop || fv.tablet || fv.mobile;
         return entry?.asset?.public_id || fv.image?.asset?.public_id || '';
+    }
+
+    function getTransformation(value) {
+        var overrides = value && value.transformationOverrides;
+        if (overrides) {
+            var trans = overrides.desktop || overrides.tablet || overrides.mobile;
+            if (trans) return trans;
+        }
+        if (value && value.transformationOverride) return value.transformationOverride;
+        var sr = value && value.formValues && value.formValues.studioResult;
+        if (sr && sr.transformation && sr.transformation !== '[]') return sr.transformation;
+        return '';
     }
 
     /**
